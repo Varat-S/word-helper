@@ -2,6 +2,7 @@ import streamlit as st
 from utils.etymology_fetcher import get_etymology
 from utils.root_extractor import extract_latin_roots
 from utils.find_word_from_roots import find_words_with_latin_root
+from utils.examples_sentences_finder import get_example_sentences
 from dotenv import load_dotenv
 import os
 import cohere
@@ -59,4 +60,12 @@ if word:
     # Placeholder sections
     st.markdown("**Related Words:** *Coming soon...*")
     st.markdown("**Semantic Matches:** *Coming soon...*")
-    st.markdown("**Example Sentences:** *Coming soon...*")
+
+    # Examples sentences
+    examples = get_example_sentences(word.strip())
+    st.markdown("**Example Sentences And Phrases:**")
+    if examples:
+        for ex in examples[:10]:
+            st.markdown(f"- {ex}")
+    else:
+        st.write("- No example sentences found.")
