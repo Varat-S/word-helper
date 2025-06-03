@@ -1,21 +1,18 @@
 import json
 
-def find_words_with_latin_root(latin_root, filepath="data/English-word.jsonl"):
-    latin_root = latin_root.lower()
-    matches = []
-
+def find_words_with_latin_root(root_list, filepath="data/English-word.jsonl"):
+    found_words = set()
     with open(filepath, "r", encoding="utf-8") as f:
         for line in f:
             try:
                 entry = json.loads(line)
-                for template in entry.get("etymology_templates", []):
+                etym_templates = entry.get("etymology_templates", [])
+                for template in etym_templates:
                     args = template.get("args", {})
-                    # Check all arg slots from 3 to 9 (sometimes Latin is stored in later args)
-                    for key in ["3", "4", "5", "6", "7", "8", "9"]:
-                        if args.get("2") == "la":
-                            latin_candidate = args.get(key, "").lower()
-                            if latin_root in latin_candidate:
-                                matches.append(entry["word"])
-            except json.JSONDecodeError:
+                    if args.get("2") == "la":  # Latin
+                        latin_root = args.get("3", "").lower()
+                        if latin_root in root_list:
+                            found_words.add(entry.get("word", "").lower())
+            except:
                 continue
-    return list(set(matches))
+    return sorted(found_words)
