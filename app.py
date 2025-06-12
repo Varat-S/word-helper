@@ -6,6 +6,7 @@ from utils.examples_sentences_finder import get_example_sentences
 from dotenv import load_dotenv
 import os
 import cohere
+import time
 
 # Load environment variables
 load_dotenv()
@@ -67,12 +68,33 @@ if word:
     # Placeholder sections
     st.markdown("**Related Words:** *Coming soon...*")
     st.markdown("**Semantic Matches:** *Coming soon...*")
-
-    # Example sentences
-    examples = get_example_sentences(word.strip())
     st.markdown("**Example Sentences And Phrases:**")
+
+    # Get examples from Wordnet and Tatoeba
+    examples = get_example_sentences(word.strip())
     if examples:
-        for ex in examples[:10]:
-            st.markdown(f"- {ex}")
+        # Finding the best examples
+        max_len = 500
+        filtered_examples = [s for s in examples if 10 <= len(s) <= max_len]
+        score_cal_examples = []
+        batch_size = 500
+        min_score = 0.005
+        for i in range(0, len(filtered_examples), batch_size):
+            batch = filtered_examples[i:i+batch_size]
+            for attempt in range(10):
+                try:
+                    response = co.rerank(query=word, documents=batch, top_n=min(20, len(batch)), model="rerank-english-v3.0")
+                    score_cal_examples.extend([
+                (batch[r.index], r.relevance_score)
+                for r in response.results if r.relevance_score > min_score
+                ])
+                    break
+                except:
+                    print(f"Rate limit hit, retry {attempt+1}/10. Waiting 60 seconds...")
+                    time.sleep(60)
+            if i>=batch_size*8:
+                break
+        for i, (sentence, score) in enumerate(sorted(score_cal_examples, key=lambda x: x[1], reverse=True)[:10]):
+            st.markdown(f"{i+1}. {sentence}")
     else:
         st.write("- No example sentences found.")
